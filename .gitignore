@@ -31,3 +31,8 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Project private files ###
+CLAUDE.md
+DECISIONS.md
+.claude/

@@ -1,14 +1,19 @@
 package com.example.jobqueue;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.format.annotation.DateTimeFormat;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+import java.time.OffsetDateTime;
 import java.util.Map;
 
 @Slf4j
 @Entity
+@NoArgsConstructor
+@AllArgsConstructor
 @Table(name = "jobs", schema = "jobs")
 public class Job {
 
@@ -21,41 +26,64 @@ public class Job {
     @JsonProperty("job_name")
     String name;
 
-    @Column(name = "max_retries")
-    @JsonProperty("max_retries")
-    int maxRetries = 0;
-
-
-    @Column(name = "retries")
-    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
-    int retries = 0;
-
+    
     @Column(name = "status")
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     @Enumerated()
     JobStatus status = JobStatus.pending;
-
+    
     @Column(name = "type")
     @JsonProperty("job_type")
     @Enumerated()
     JobType type;
-
+    
     @Column(name = "args_json_string")
     @JsonProperty("jobs_args")
-    String args;
-
-    @Column(name = "error_message")
+    @JdbcTypeCode(SqlTypes.JSON)
+    Map<String, Object> args;
+    
+    // Details about the worker locks. q
+    @Column(name = "locked_by_worker_id")
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
-    String errorMessage;
+    String lockedByWorkerId;
+    
+    @Column(name = "locked_at")
+    @JsonProperty(namespace = "locked_at_in_ms", access = JsonProperty.Access.READ_ONLY)    
+    OffsetDateTime lockedAtInMs;
 
     //TODO: also think about the logging part
     @Column(name = "created_at")
     @JsonProperty("job_created_at_in_ms")
-    String createdAtInMs;
+    OffsetDateTime createdAtInMs;
 
+    @Column(name = "next_retry_at")
+    @JsonProperty(namespace = "next_retry_at_in_ms", access = JsonProperty.Access.READ_ONLY)
+    OffsetDateTime nextRetryAtInMs;
+
+    @Column(name = "scheduled_at")
+    @JsonProperty(namespace = "scheduled_at_in_ms", access = JsonProperty.Access.READ_ONLY)
+    OffsetDateTime scheduledAtInMs;
+
+    @Column(name = "max_retries")
+    @JsonProperty("max_retries")
+    int maxRetries = 0;
+    
+    @Column(name = "retries")
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+    int retries = 0;
+    
     @Column(name = "last_retried_at")
     @JsonProperty(namespace = "last_retried_at_in_ms", access = JsonProperty.Access.READ_ONLY)
-    String lastRetriedAtInMs;
+    OffsetDateTime lastRetriedAtInMs;
+
+    @Column(name = "error_message")
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+    String errorMessage;
+    
+
+    @Column(name = "last_error_at")
+    @JsonProperty(namespace = "last_error_at_in_ms", access = JsonProperty.Access.READ_ONLY)
+    OffsetDateTime lastErrorAtInMs;
 
     public Long getId() {
         return id;
@@ -106,10 +134,10 @@ public class Job {
     }
 
     public String getArgs() {
-        return args;
+        return args.toString();
     }
 
-    public void setArgs(String args) {
+    public void setArgs(Map<String, Object> args) {
         this.args = args;
     }
 
@@ -121,20 +149,32 @@ public class Job {
         this.errorMessage = errorMessage;
     }
 
-    public String getCreatedAtInMs() {
+    public OffsetDateTime getCreatedAtInMs() {
         return createdAtInMs;
     }
 
-    public void setCreatedAtInMs(String createdAtInMs) {
+    public void setCreatedAtInMs(OffsetDateTime createdAtInMs) {
         this.createdAtInMs = createdAtInMs;
     }
 
-    public String getLastRetriedAtInMs() {
+    public OffsetDateTime getLastRetriedAtInMs() {
         return lastRetriedAtInMs;
     }
 
-    public void setLastRetriedAtInMs(String lastRetriedAtInMs) {
+    public void setLastRetriedAtInMs(OffsetDateTime lastRetriedAtInMs) {
         this.lastRetriedAtInMs = lastRetriedAtInMs;
+    }
+
+    public Job(Job other) {
+        this.name = other.name;
+        this.maxRetries = other.maxRetries;
+        this.retries = other.retries;
+        this.status = other.status;
+        this.type = other.type;
+        this.args = other.args;
+        this.errorMessage = other.errorMessage;
+        this.createdAtInMs = other.createdAtInMs;
+        this.lastRetriedAtInMs = other.lastRetriedAtInMs;
     }
 
     @Override
@@ -155,18 +195,32 @@ public class Job {
 
 
     }
+
+    public String getLockedByWorkerId() {
+        return lockedByWorkerId;
+    }
+
+    public void setLockedByWorkerId(String lockedByWorkerId) {
+        this.lockedByWorkerId = lockedByWorkerId;
+    }
+
+    public OffsetDateTime getLockedAtInMs() {
+        return lockedAtInMs;
+    }
+
+    public void setLockedAtInMs(OffsetDateTime lockedAtInMs) {
+        this.lockedAtInMs = lockedAtInMs;
+    }
+
+    public OffsetDateTime getLastErrorAtInMs() {
+        return lastErrorAtInMs;
+    }
+
+    public void setLastErrorAtInMs(OffsetDateTime lastErrorAtInMs) {
+        this.lastErrorAtInMs = lastErrorAtInMs;
+    }
 }
 
-enum JobStatus {
-    pending,
-    processing,
-    completed,
-    failed,
-    dead
-}
 
-enum JobType {
-    send_email,
-    call_weather,
-    image_processing
-}
+
+

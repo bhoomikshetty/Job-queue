@@ -1,11 +1,7 @@
 package com.example.jobqueue;
 
-import org.springframework.data.jpa.repository.Query;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Optional;
 import java.util.List;
@@ -13,12 +9,13 @@ import java.util.List;
 @RestController
 public class Controller {
 
-    static JobRepository jobRepository;
+    public static JobRepository jobRepository;
 
     public Controller(JobRepository jobRepository)
     {
-        this.jobRepository = jobRepository;
+        Controller.jobRepository = jobRepository;
     }
+
     @PostMapping("/addJob")
     public static ResponseEntity<Job> addJob(@RequestBody Job job){
         System.out.println(job.toString());
@@ -27,15 +24,26 @@ public class Controller {
     }
 
     @GetMapping("/getJobStatus")
-    public static JobStatus getJobStatus(Long id){
+    public static JobStatus getJobStatus(@RequestParam Long id){
         Optional<Job> job = jobRepository.findById(id);
         return job.get().status;
     }
 
+    @GetMapping("/getAllJobs")
+    public static ResponseEntity<List<Job>> getAllJobs(){
+        List<Job> jobs = jobRepository.findAll();
+        return ResponseEntity.ok(jobs);
+    }
 
-    @GetMapping("/testEndpoint")
-    public static ResponseEntity testEndpoint(){
-        List<Job> jobs = jobRepository.fetchPendingJobs();
+    @GetMapping("/getJobById")
+    public static ResponseEntity<Job> getJobById(@RequestParam Long id){
+        Optional<Job> job = jobRepository.findById(id);
+        return job.map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/getPendingJobs")
+    public static ResponseEntity testEndpoint(@RequestParam String status){
+        List<Job> jobs = jobRepository.fetchAllJobsByStatus(status);
         return ResponseEntity.status(200).body(jobs);
     }
 }
