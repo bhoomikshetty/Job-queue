@@ -29,12 +29,12 @@ public class Job {
     
     @Column(name = "status")
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
-    @Enumerated()
+    @Enumerated(EnumType.STRING)
     JobStatus status = JobStatus.pending;
     
     @Column(name = "type")
     @JsonProperty("job_type")
-    @Enumerated()
+    @Enumerated(EnumType.STRING)
     JobType type;
     
     @Column(name = "args_json_string")
@@ -53,16 +53,16 @@ public class Job {
 
     //TODO: also think about the logging part
     @Column(name = "created_at")
-    @JsonProperty("job_created_at_in_ms")
-    OffsetDateTime createdAtInMs;
+    @JsonProperty(namespace = "job_created_at_in_ms", access = JsonProperty.Access.READ_ONLY)
+    OffsetDateTime createdAtInMs = OffsetDateTime.now();
 
     @Column(name = "next_retry_at")
     @JsonProperty(namespace = "next_retry_at_in_ms", access = JsonProperty.Access.READ_ONLY)
     OffsetDateTime nextRetryAtInMs;
 
     @Column(name = "scheduled_at")
-    @JsonProperty(namespace = "scheduled_at_in_ms", access = JsonProperty.Access.READ_ONLY)
-    OffsetDateTime scheduledAtInMs;
+    @JsonProperty(namespace = "scheduled_at_in_ms")
+    OffsetDateTime scheduledAtInMs = OffsetDateTime.now();
 
     @Column(name = "max_retries")
     @JsonProperty("max_retries")
@@ -218,6 +218,22 @@ public class Job {
 
     public void setLastErrorAtInMs(OffsetDateTime lastErrorAtInMs) {
         this.lastErrorAtInMs = lastErrorAtInMs;
+    }
+
+    public OffsetDateTime getNextRetryAtInMs() {
+        return nextRetryAtInMs;
+    }
+
+    public void setNextRetryAtInMs(OffsetDateTime nextRetryAtInMs) {
+        this.nextRetryAtInMs = nextRetryAtInMs;
+    }
+
+    public OffsetDateTime getScheduledAtInMs() {
+        return scheduledAtInMs;
+    }
+
+    public void setScheduledAtInMs(OffsetDateTime scheduledAtInMs) {
+        this.scheduledAtInMs = scheduledAtInMs;
     }
 }
 

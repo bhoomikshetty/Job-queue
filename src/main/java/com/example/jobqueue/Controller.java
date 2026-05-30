@@ -9,42 +9,72 @@ import java.util.List;
 @RestController
 public class Controller {
 
-    public static JobRepository jobRepository;
+    final JobRepository jobRepository;
+    final RedisService redisService;
 
-    public Controller(JobRepository jobRepository)
+    public Controller(JobRepository jobRepository, RedisService redisService)
     {
-        Controller.jobRepository = jobRepository;
+        this.jobRepository = jobRepository;
+        this.redisService = redisService;
     }
 
+    
     @PostMapping("/addJob")
-    public static ResponseEntity<Job> addJob(@RequestBody Job job){
+    public ResponseEntity<Job> addJob(@RequestBody Job job){
         System.out.println(job.toString());
-        Job saved = jobRepository.save(job);
+        Job saved = jobRepository.save(job);        
+
+        try {
+            redisService.addJobToRedis(saved);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         return ResponseEntity.ok(saved);
     }
 
-    @GetMapping("/getJobStatus")
-    public static JobStatus getJobStatus(@RequestParam Long id){
-        Optional<Job> job = jobRepository.findById(id);
-        return job.get().status;
+    @GetMapping("/getJobStatus/")
+    public JobStatus getJobStatus(@RequestParam Long id){
+        try {
+            Optional<Job> job = jobRepository.findById(id);
+            return job.get().status;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
     @GetMapping("/getAllJobs")
-    public static ResponseEntity<List<Job>> getAllJobs(){
-        List<Job> jobs = jobRepository.findAll();
-        return ResponseEntity.ok(jobs);
+    public ResponseEntity<List<Job>> getAllJobs(){
+        try {
+            List<Job> jobs = jobRepository.findAll();
+            return ResponseEntity.ok(jobs);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).build();
+        }
     }
 
     @GetMapping("/getJobById")
-    public static ResponseEntity<Job> getJobById(@RequestParam Long id){
-        Optional<Job> job = jobRepository.findById(id);
-        return job.map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<Job> getJobById(@RequestParam Long id){
+        try {
+             Optional<Job> job = jobRepository.findById(id);
+             return job.map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).build();
+        }
     }
 
     @GetMapping("/getPendingJobs")
-    public static ResponseEntity testEndpoint(@RequestParam String status){
-        List<Job> jobs = jobRepository.fetchAllJobsByStatus(status);
-        return ResponseEntity.status(200).body(jobs);
+    public ResponseEntity<List<Job>> testEndpoint(@RequestParam String status){
+        try {
+            String jobStatus = status.toUpperCase();
+            List<Job> jobs = jobRepository.fetchAllJobsByStatus(jobStatus);
+            return ResponseEntity.ok(jobs);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).build();
+        }
     }
 }
 

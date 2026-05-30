@@ -36,3 +36,5 @@ build/
 CLAUDE.md
 DECISIONS.md
 .claude/
+auto-commit.ps1
+ROADBLOCKS.md
