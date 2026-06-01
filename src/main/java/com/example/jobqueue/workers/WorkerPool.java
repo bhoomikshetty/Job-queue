@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.ConcurrentHashMap;
+import java.time.OffsetDateTime;
 
 @Component
 public class WorkerPool {
@@ -36,7 +37,15 @@ public class WorkerPool {
         4,  // Maximum pool size
         1,  // Keep alive time (seconds)
         TimeUnit.SECONDS,  // Time unit for keep alive time
-        new LinkedBlockingQueue<>()  // Task queue
+        new LinkedBlockingQueue<>(),  // Task queue
+        r -> {
+            Thread t = new Thread(r);
+            t.setName("WorkerPool-Thread-" + t.getId());
+            t.setUncaughtExceptionHandler((thread, execption) -> {
+                System.out.println("Uncaught exception in thread " + thread.getName() + ": " + execption.getMessage());
+            });
+            return t;
+        }
     );
 
     public WorkerPool(RedisService redisService, JobHandlerRegistry jobHandlerRegistry, JobRepository jobRepository, ProcessJobService processJobService) {
@@ -60,9 +69,14 @@ public class WorkerPool {
 
         jobs.stream().forEach(jobId -> redisService.removeJobFromRedis(Long.parseLong(jobId)));
         jobs.stream().forEach(jobId -> {
-            executor.submit(() -> {
-                processJobService.processJob(jobId);
-            });
+            try{
+                executor.execute(() -> {
+                    processJobService.processJob(jobId);
+                });
+            }
+            catch(Exception e) {
+                System.out.println("Error processing job with ID " + jobId + ": " + e.getMessage());
+            }
         });
 
     }
@@ -115,15 +129,19 @@ class ProcessJobService {
 
     }
 
-    // @Transactional
+    @Transactional
     public void processJob(String jobId) {
-        Optional<Job> job = jobRepository.findByIdAndLock(Long.parseLong(jobId));
+        Optional<Job> job = jobRepository.findByIdAndLock(Long.parseLong(jobId), OffsetDateTime.now());
+        
         if (job.isPresent()) {
             processedCount.put(Long.parseLong(jobId), processedCount.getOrDefault(Long.parseLong(jobId), 0) + 1);
             JobHandler handler = jobHandlerRegistry.getHandlerForJobType(job.get().getType());
-            boolean isSuccessful = handler.execute(job.get());
+            JobHandlerResponse response = handler.execute(job.get());
+            boolean isSuccessful = response.isSuccess();
+            String message = response.getMessage();
+            OffsetDateTime resultedAtInMs = response.getResultedAtInMs();
+
             if (isSuccessful) {
-                
                 System.out.println("Job with ID " + jobId + " completed successfully.");
                 try{
                    jobRepository.updateJobStatus(Long.parseLong(jobId), JobStatus.completed.name());
@@ -133,16 +151,38 @@ class ProcessJobService {
             }
             else {
                 System.out.println("Job with ID " + jobId + " failed during execution.");
-                if(job.get().getRetries() + 1 < job.get().getMaxRetries()) {
+                
+                Job updateJob = job.get();
+                int retries = job.get().getRetries();
+                int maxRetries = job.get().getMaxRetries();
+                
+                updateJob.setLastRetriedAtInMs(resultedAtInMs);
+                updateJob.setErrorMessage(message);
+                updateJob.setRetries(retries + 1);
+                updateJob.setLastErrorAtInMs(resultedAtInMs);
+                
+                if(retries + 1 < maxRetries) {
                     processedCount.put(Long.parseLong(jobId), 0);
+                    long backoffSeconds = Math.min((long) Math.pow(2, retries), 3600);
+                    OffsetDateTime nextRetryAt = resultedAtInMs.plusSeconds(backoffSeconds); // Schedule next retry after 1 minute
                     
-                    jobRepository.incrementRetries(Long.parseLong(jobId));
-                    jobRepository.updateJobStatus(Long.parseLong(jobId), JobStatus.pending.name());
+                    updateJob.setStatus(JobStatus.pending);
+                    updateJob.setNextRetryAtInMs(nextRetryAt);
                 }
                 else {
                     System.out.println("Job with ID " + jobId + " has reached max retries. Marking as failed.");
-                    jobRepository.updateJobStatus(Long.parseLong(jobId), JobStatus.dead.name());
+                    updateJob.setStatus(JobStatus.dead);
                 }
+
+                jobRepository.updateJob(
+                    updateJob.getId(),
+                    updateJob.getRetries(),
+                    updateJob.getLastRetriedAtInMs(),
+                    updateJob.getErrorMessage(),
+                    updateJob.getLastErrorAtInMs(),
+                    updateJob.getNextRetryAtInMs(),
+                    updateJob.getStatus().name()
+                );
             }
         } else {
             System.out.println("Job with ID " + jobId + " is not pending.");

@@ -17,7 +17,16 @@ public class RedisService {
     }
 
     public Boolean addJobToRedis(Job job) {
-        double score = (job.getScheduledAtInMs() == null ? job.getCreatedAtInMs() : job.getScheduledAtInMs()).toInstant().toEpochMilli();
+
+        double score = 0;
+
+        if(job.getNextRetryAtInMs() != null) {
+            score = job.getNextRetryAtInMs().toInstant().toEpochMilli();
+        }
+        else {
+            score = (job.getScheduledAtInMs() == null ? job.getCreatedAtInMs() : job.getScheduledAtInMs()).toInstant().toEpochMilli();
+        }
+        
         return redisTemplate.opsForZSet().add("job_queue", job.getId(), score);
     }
 

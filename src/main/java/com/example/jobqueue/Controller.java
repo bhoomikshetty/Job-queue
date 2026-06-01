@@ -18,7 +18,6 @@ public class Controller {
         this.redisService = redisService;
     }
 
-    
     @PostMapping("/addJob")
     public ResponseEntity<Job> addJob(@RequestBody Job job){
         System.out.println(job.toString());

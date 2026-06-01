@@ -80,7 +80,6 @@ public class Job {
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     String errorMessage;
     
-
     @Column(name = "last_error_at")
     @JsonProperty(namespace = "last_error_at_in_ms", access = JsonProperty.Access.READ_ONLY)
     OffsetDateTime lastErrorAtInMs;
