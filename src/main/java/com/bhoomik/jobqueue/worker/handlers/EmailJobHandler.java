@@ -1,8 +1,10 @@
-package com.example.jobqueue.workers;
+package com.bhoomik.jobqueue.worker.handlers;
 
+import com.bhoomik.jobqueue.domain.Job;
+import com.bhoomik.jobqueue.domain.JobType;
+import com.bhoomik.jobqueue.worker.JobHandler;
+import com.bhoomik.jobqueue.worker.JobHandlerResponse;
 import org.springframework.stereotype.Component;
-import com.example.jobqueue.Job;
-import com.example.jobqueue.JobType;
 
 import java.time.OffsetDateTime;
 
@@ -11,10 +13,9 @@ public class EmailJobHandler implements JobHandler {
 
     @Override
     public JobHandlerResponse execute(Job job) {
-        System.out.println("Executing Email Job with ID: " + job.toString());
-
+        System.out.println("Executing Email Job with ID: " + job.getId());
         double result = Math.random();
-        if(result < 0.8) {
+        if (result < 0.8) {
             System.out.println("Email sent successfully for Job ID: " + job.getId());
             return new JobHandlerResponse(true, "Email sent successfully.", OffsetDateTime.now());
         } else {
@@ -27,5 +28,4 @@ public class EmailJobHandler implements JobHandler {
     public JobType getSupportedType() {
         return JobType.send_email;
     }
-
 }

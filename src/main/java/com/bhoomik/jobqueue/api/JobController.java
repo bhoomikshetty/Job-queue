@@ -1,27 +1,30 @@
-package com.example.jobqueue;
+package com.bhoomik.jobqueue.api;
 
+import com.bhoomik.jobqueue.domain.Job;
+import com.bhoomik.jobqueue.domain.JobRepository;
+import com.bhoomik.jobqueue.domain.JobStatus;
+import com.bhoomik.jobqueue.scheduler.RedisService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Optional;
 import java.util.List;
+import java.util.Optional;
 
 @RestController
-public class Controller {
+public class JobController {
 
     final JobRepository jobRepository;
     final RedisService redisService;
 
-    public Controller(JobRepository jobRepository, RedisService redisService)
-    {
+    public JobController(JobRepository jobRepository, RedisService redisService) {
         this.jobRepository = jobRepository;
         this.redisService = redisService;
     }
 
     @PostMapping("/addJob")
-    public ResponseEntity<Job> addJob(@RequestBody Job job){
+    public ResponseEntity<Job> addJob(@RequestBody Job job) {
         System.out.println(job.toString());
-        Job saved = jobRepository.save(job);        
+        Job saved = jobRepository.save(job);
 
         try {
             redisService.addJobToRedis(saved);
@@ -32,10 +35,10 @@ public class Controller {
     }
 
     @GetMapping("/getJobStatus/")
-    public JobStatus getJobStatus(@RequestParam Long id){
+    public JobStatus getJobStatus(@RequestParam Long id) {
         try {
             Optional<Job> job = jobRepository.findById(id);
-            return job.get().status;
+            return job.get().getStatus();
         } catch (Exception e) {
             e.printStackTrace();
             return null;
@@ -43,7 +46,7 @@ public class Controller {
     }
 
     @GetMapping("/getAllJobs")
-    public ResponseEntity<List<Job>> getAllJobs(){
+    public ResponseEntity<List<Job>> getAllJobs() {
         try {
             List<Job> jobs = jobRepository.findAll();
             return ResponseEntity.ok(jobs);
@@ -54,10 +57,10 @@ public class Controller {
     }
 
     @GetMapping("/getJobById")
-    public ResponseEntity<Job> getJobById(@RequestParam Long id){
+    public ResponseEntity<Job> getJobById(@RequestParam Long id) {
         try {
-             Optional<Job> job = jobRepository.findById(id);
-             return job.map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
+            Optional<Job> job = jobRepository.findById(id);
+            return job.map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(500).build();
@@ -65,10 +68,9 @@ public class Controller {
     }
 
     @GetMapping("/getPendingJobs")
-    public ResponseEntity<List<Job>> testEndpoint(@RequestParam String status){
+    public ResponseEntity<List<Job>> getJobsByStatus(@RequestParam String status) {
         try {
-            String jobStatus = status.toUpperCase();
-            List<Job> jobs = jobRepository.fetchAllJobsByStatus(jobStatus);
+            List<Job> jobs = jobRepository.fetchAllJobsByStatus(status.toUpperCase());
             return ResponseEntity.ok(jobs);
         } catch (Exception e) {
             e.printStackTrace();
@@ -76,5 +78,3 @@ public class Controller {
         }
     }
 }
-
-

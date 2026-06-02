@@ -1,4 +1,4 @@
-package com.example.jobqueue;
+package com.bhoomik.jobqueue.domain;
 
 public enum JobType {
     send_email,

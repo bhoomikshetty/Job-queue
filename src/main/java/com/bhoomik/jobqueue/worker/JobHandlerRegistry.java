@@ -1,22 +1,20 @@
-package com.example.jobqueue.workers;
+package com.bhoomik.jobqueue.worker;
 
+import com.bhoomik.jobqueue.domain.JobType;
 import org.springframework.stereotype.Component;
 
-import com.example.jobqueue.JobType;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import java.util.HashMap;
-
 
 @Component
 public class JobHandlerRegistry {
-    
-    final private Map<JobType, JobHandler> jobHandlers;
-    
+
+    private final Map<JobType, JobHandler> jobHandlers;
+
     public JobHandlerRegistry(List<JobHandler> jobHandlersList) {
         this.jobHandlers = jobHandlersList.stream()
-          .collect(Collectors.toMap(JobHandler::getSupportedType, h -> h));
+                .collect(Collectors.toMap(JobHandler::getSupportedType, h -> h));
     }
 
     public JobHandler getHandlerForJobType(JobType jobType) {

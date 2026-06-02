@@ -1,8 +1,10 @@
-package com.example.jobqueue.workers;
+package com.bhoomik.jobqueue.worker.handlers;
 
+import com.bhoomik.jobqueue.domain.Job;
+import com.bhoomik.jobqueue.domain.JobType;
+import com.bhoomik.jobqueue.worker.JobHandler;
+import com.bhoomik.jobqueue.worker.JobHandlerResponse;
 import org.springframework.stereotype.Component;
-import com.example.jobqueue.Job;
-import com.example.jobqueue.JobType;
 
 import java.time.OffsetDateTime;
 
@@ -12,9 +14,8 @@ public class ImageProcessingJobHandler implements JobHandler {
     @Override
     public JobHandlerResponse execute(Job job) {
         System.out.println("Executing Image Processing Job with ID: " + job.getId());
-        // Add logic for image processing based on job arguments
         double result = Math.random();
-        if(result < 0.8) {
+        if (result < 0.8) {
             System.out.println("Image processed successfully for Job ID: " + job.getId());
             return new JobHandlerResponse(true, "Image processed successfully.", OffsetDateTime.now());
         } else {
@@ -27,5 +28,4 @@ public class ImageProcessingJobHandler implements JobHandler {
     public JobType getSupportedType() {
         return JobType.image_processing;
     }
-
 }

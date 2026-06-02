@@ -1,4 +1,4 @@
-package com.example.jobqueue;
+package com.bhoomik.jobqueue.domain;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -21,23 +21,6 @@ public interface JobRepository extends JpaRepository<Job, Long> {
     """, nativeQuery = true)
     List<Job> fetchPendingJobs(int limit);
 
-    // @Modifying
-    @Query(value = """
-    UPDATE jobs.jobs
-    SET status = 'processing'
-    WHERE id IN (
-        SELECT id FROM jobs.jobs
-        WHERE status = 'pending'
-        ORDER BY id
-        LIMIT :limit
-        FOR UPDATE SKIP LOCKED
-    )
-    RETURNING *
-    """, nativeQuery = true)
-    List<Job> fetchAndLockPendingJobs(@Param("limit") int limit);
-
-    // @Transactional
-    // @Modifying
     @Query(value = """
     UPDATE jobs.jobs
     SET status = 'processing',
@@ -65,19 +48,6 @@ public interface JobRepository extends JpaRepository<Job, Long> {
     @Transactional
     @Query(value = """
         UPDATE jobs.jobs
-        SET error_message = :message
-        WHERE id = :id
-    """, nativeQuery = true)
-    void updateErrorMessage(@Param("id") Long id, @Param("message") String message);
-    
-    
-    
-    
-    
-     @Modifying
-    @Transactional
-    @Query(value = """
-        UPDATE jobs.jobs
         SET retries = :retries,
             last_retried_at = :lastRetriedAt,
             error_message = :errorMessage,
@@ -96,16 +66,6 @@ public interface JobRepository extends JpaRepository<Job, Long> {
         @Param("status") String status
     );
 
-
-    @Modifying
-    @Transactional
-    @Query(value = """
-        UPDATE jobs.jobs
-        SET retries = retries + 1
-        WHERE id = :id
-    """, nativeQuery = true)
-    void incrementRetries(@Param("id") Long id);
-
     @Query(value = """
     SELECT * FROM jobs.jobs
     WHERE status = :status
@@ -114,21 +74,18 @@ public interface JobRepository extends JpaRepository<Job, Long> {
     List<Job> fetchAllJobsByStatus(@Param("status") String status);
 
     @Query(value = """
-    SELECT * FROM jobs.jobs    
+    SELECT * FROM jobs.jobs
     WHERE status = 'pending' AND scheduled_at <= :startTime
     """, nativeQuery = true)
     List<Job> fetchScheduledJobs(@Param("startTime") OffsetDateTime startTime);
 
-    
     @Transactional
     @Modifying
     @Query(value = """
     UPDATE jobs.jobs
     SET status = 'pending',
-    locked_at = NULL
+        locked_at = NULL
     WHERE status = 'processing' AND locked_at <= :now
     """, nativeQuery = true)
     int resetStuckProcessingJobs(@Param("now") OffsetDateTime now);
-
-
 }
