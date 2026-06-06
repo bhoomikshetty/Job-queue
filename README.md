@@ -168,7 +168,3 @@ jobs are arriving faster than the 10-core pool can drain them.
 | Warm up | 20 | Stable — 0% failures |
 | Comfortable | 50–100 | Stable — no degradation |
 | Stress | 200–300 | HTTP layer breaks — 4% request failures, p95 crossed 1s |
-
-The job processing pipeline had headroom beyond what the API layer could feed it.
-Fix: tune `server.tomcat.threads.max` or switch the API to WebFlux to decouple
-HTTP concurrency from thread count.
