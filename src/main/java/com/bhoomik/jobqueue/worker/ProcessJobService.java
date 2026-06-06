@@ -3,9 +3,11 @@ package com.bhoomik.jobqueue.worker;
 import com.bhoomik.jobqueue.domain.Job;
 import com.bhoomik.jobqueue.domain.JobRepository;
 import com.bhoomik.jobqueue.domain.JobStatus;
+import com.bhoomik.jobqueue.metrics.JobMetricsService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.Map;
 import java.util.Optional;
@@ -16,12 +18,14 @@ public class ProcessJobService {
 
     final JobRepository jobRepository;
     final JobHandlerRegistry jobHandlerRegistry;
+    final JobMetricsService jobMetricsService;
 
     Map<Long, Integer> processedCount = new ConcurrentHashMap<>();
 
-    public ProcessJobService(JobRepository jobRepository, JobHandlerRegistry jobHandlerRegistry) {
+    public ProcessJobService(JobRepository jobRepository, JobHandlerRegistry jobHandlerRegistry, JobMetricsService jobMetricsService) {
         this.jobRepository = jobRepository;
         this.jobHandlerRegistry = jobHandlerRegistry;
+        this.jobMetricsService = jobMetricsService;
     }
 
     public void verifyProcessedCount() {
@@ -47,10 +51,14 @@ public class ProcessJobService {
             processedCount.merge(Long.parseLong(jobId), 1, Integer::sum);
 
             JobHandler handler = jobHandlerRegistry.getHandlerForJobType(job.get().getType());
+
+            long start = System.nanoTime();
             JobHandlerResponse response = handler.execute(job.get());
+            jobMetricsService.recordProcessingTime(Duration.ofNanos(System.nanoTime() - start));
 
             if (response.isSuccess()) {
                 System.out.println("Job " + jobId + " completed successfully.");
+                jobMetricsService.recordJobProcessed(job.get().getRetries());
                 try {
                     jobRepository.updateJobStatus(Long.parseLong(jobId), JobStatus.completed.name());
                 } catch (Exception e) {
@@ -69,6 +77,7 @@ public class ProcessJobService {
                 updateJob.setRetries(retries + 1);
                 updateJob.setLastErrorAtInMs(resultedAt);
 
+                jobMetricsService.recordJobFailed(job.get().getRetries());
                 if (retries + 1 < maxRetries) {
                     processedCount.put(Long.parseLong(jobId), 0);
                     long backoffSeconds = Math.min((long) Math.pow(2, retries), 3600);

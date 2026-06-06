@@ -14,6 +14,13 @@ public class CallWeatherHandler implements JobHandler {
     @Override
     public JobHandlerResponse execute(Job job) {
         System.out.println("Executing Weather Job with ID: " + job.getId());
+
+        try {
+            Thread.sleep(100 + (long)(Math.random() * 200)); // simulate external HTTP call: 100–300ms
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
         double result = Math.random();
         if (result < 0.8) {
             System.out.println("Weather retrieved successfully for Job ID: " + job.getId());

@@ -16,8 +16,8 @@ public class WorkerPool {
     final ProcessJobService processJobService;
 
     ThreadPoolExecutor executor = new ThreadPoolExecutor(
-        2,
-        4,
+        10,
+        20,
         1,
         TimeUnit.SECONDS,
         new LinkedBlockingQueue<>(),
@@ -35,12 +35,13 @@ public class WorkerPool {
         this.processJobService = processJobService;
     }
 
-    @Scheduled(cron = "*/5 * * * * *")
-    public void printWorkerPoolStatus() {
-        processJobService.verifyProcessedCount();
-    }
+    // @Scheduled(cron = "*/5 * * * * *")
+    // public void printWorkerPoolStatus() {
+    //     processJobService.verifyProcessedCount();
+    // }
+    
 
-    @Scheduled(cron = "*/10 * * * * *")
+    @Scheduled(cron = "*/2 * * * * *")
     public void pollRedisForJobs() {
         List<String> jobs = redisService.getJobsFromRedis();
         System.out.println("Worker Poll: " + jobs);

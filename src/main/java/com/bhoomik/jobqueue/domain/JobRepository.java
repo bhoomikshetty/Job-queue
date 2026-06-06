@@ -8,18 +8,23 @@ import org.springframework.data.repository.query.Param;
 import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 public interface JobRepository extends JpaRepository<Job, Long> {
 
     @Query(value = """
-    SELECT * FROM jobs.jobs
+    SELECT COUNT(*) FROM jobs.jobs
     WHERE status = 'pending'
-    ORDER BY id ASC
-    LIMIT 10
-    FOR UPDATE SKIP LOCKED
     """, nativeQuery = true)
-    List<Job> fetchPendingJobs(int limit);
+    long countPendingJobs();
+
+    @Query(value = """
+    SELECT status, COUNT(*) as count
+    FROM jobs.jobs
+    GROUP BY status
+    """, nativeQuery = true)
+    List<JobStatusCount> countJobsByStatus();
 
     @Query(value = """
     UPDATE jobs.jobs

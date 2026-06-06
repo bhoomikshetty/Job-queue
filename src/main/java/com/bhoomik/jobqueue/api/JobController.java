@@ -3,12 +3,15 @@ package com.bhoomik.jobqueue.api;
 import com.bhoomik.jobqueue.domain.Job;
 import com.bhoomik.jobqueue.domain.JobRepository;
 import com.bhoomik.jobqueue.domain.JobStatus;
+import com.bhoomik.jobqueue.domain.JobStatusCount;
 import com.bhoomik.jobqueue.scheduler.RedisService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RestController
 public class JobController {
@@ -72,6 +75,18 @@ public class JobController {
         try {
             List<Job> jobs = jobRepository.fetchAllJobsByStatus(status.toUpperCase());
             return ResponseEntity.ok(jobs);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).build();
+        }
+    }
+
+    @GetMapping("/jobs/stats")
+    public ResponseEntity<Map<String, Long>> getStats() {
+        try {
+            Map<String, Long> stats = jobRepository.countJobsByStatus().stream()
+                .collect(Collectors.toMap(JobStatusCount::getStatus, JobStatusCount::getCount));
+            return ResponseEntity.ok(stats);
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(500).build();

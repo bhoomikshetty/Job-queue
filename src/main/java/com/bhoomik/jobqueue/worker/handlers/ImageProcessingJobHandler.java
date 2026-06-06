@@ -15,6 +15,15 @@ public class ImageProcessingJobHandler implements JobHandler {
     public JobHandlerResponse execute(Job job) {
         System.out.println("Executing Image Processing Job with ID: " + job.getId());
         double result = Math.random();
+
+                
+        try {
+            Thread.sleep(1000 + (int)(Math.random() * 500));
+        } 
+        catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
         if (result < 0.8) {
             System.out.println("Image processed successfully for Job ID: " + job.getId());
             return new JobHandlerResponse(true, "Image processed successfully.", OffsetDateTime.now());
