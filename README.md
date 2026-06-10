@@ -1,6 +1,6 @@
 # Distributed Job Queue
 
-A production-grade background job processing system built with Spring Boot, Redis, and Postgres.
+A background job processing system built with Spring Boot, Redis, and Postgres.
 
 ## Architecture
 
